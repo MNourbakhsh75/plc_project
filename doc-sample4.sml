@@ -1,26 +1,29 @@
 class MainClass {
     def main(): int {
-        #writeln(new SecondMain().main());
+        writeln(new SecondMain().main());
         return 0;
     }
 }
 
-class SecondMain {
-    var s : boolean;
+class Pat {
+    var kharoo : int;
+}
+
+class SecondMain extends Pat {
+    var s : string;
     var arr : int[];
     def oops() : int {
-        var x : int;
-        #var x : int;
-        s = "hi";
-        y = 12;
-        return 0;
+        var x : boolean;
+        var z : boolean;
+        var y : int;
+        #s = "hi";
+        kharoo = x && z;
+        if ( x > 14) then 
+            x = 14;
+        return y;
     }
 }
 
 class Mat {
     var k : Pat;
-}
-
-class Pat {
-
 }
