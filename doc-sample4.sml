@@ -17,12 +17,13 @@ class SecondMain extends Pat {
         var z : int;
         var y : int;
         var h : int;
+        #y = kk;
         #s = "hi";
-        arr = new int[2];
-        arr[1] = "hi";
+        arr = new int[5];
+        arr[4] = 12;
         kharoo = x * z + y * h;
         h = s.Poop();
-        if ( x > 14) then 
+        if ( x < 14) then 
             x = 14;
         return y;
     }

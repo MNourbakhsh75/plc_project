@@ -227,6 +227,12 @@ public class TypeAnalyzer extends VisitorImpl {
             checked = true;
         } else if ((assign.getlValue().getType() instanceof NoType) && (!(assign.getrValue().getType() instanceof NoType))){
             checked = false;
+        }else if ((assign.getlValue().getType() instanceof ArrayType) && ((assign.getrValue().getType() instanceof NoType))) {
+            checked = true;
+        }else if ((assign.getlValue().getType() instanceof ArrayType) && ((assign.getrValue().getType() instanceof IntType))){
+            checked = true;
+        }else if ((assign.getlValue().getType() instanceof ArrayType) && ((assign.getrValue().getType() instanceof IntType))){
+            checked = true;
         }else {
             checked = false;
         }
@@ -338,7 +344,11 @@ public class TypeAnalyzer extends VisitorImpl {
             visitExpr(arrayCall.getInstance());
             visitExpr(arrayCall.getIndex());
             if (traverseState.name().equals(TraverseState.redefinitionAndArrayErrorCatching.toString())){
-                
+                int arrSize =((ArrayType)(arrayCall.getInstance().getType())).getSize();
+                arrayCall.setType(arrayCall.getInstance().getType());
+                if((((IntValue)arrayCall.getIndex()).getConstant() > arrSize) || (((IntValue)arrayCall.getIndex()).getConstant() < 0)){
+                    System.out.println("Line:" + arrayCall.getInstance().getLineNum() + ": invalid index for array");    
+                }
             }
         } catch (NullPointerException npe) {
             System.out.println("instance or index is null");
@@ -365,7 +375,7 @@ public class TypeAnalyzer extends VisitorImpl {
                         System.out.println("Line:" + binaryExpression.getLineNum() + ":unsupported operand type for " + op.name());
                     // return; 
                 }
-            }else if ((op.name().equals("add")) || (op.name().equals("sub")) || (op.name().equals("mult")) || (op.name().equals("div")) || (op.name().equals("gt")) || (op.name().equals("lt")) || (op.name().equals("gte")) || (op.name().equals("lte"))){
+            }else if ((op.name().equals("add")) || (op.name().equals("sub")) || (op.name().equals("mult")) || (op.name().equals("div"))){
                 if ((lOperand.getType() instanceof IntType) && (rOperand.getType() instanceof IntType)) {
                     binaryExpression.setType(lOperand.getType());
                 } else if ((lOperand.getType() instanceof NoType) && (rOperand.getType() instanceof IntType)){
@@ -380,6 +390,18 @@ public class TypeAnalyzer extends VisitorImpl {
                     System.out.println("Line:" + binaryExpression.getLineNum() + ":unsupported operand type for " + op.name());
                     // return;
                 }
+            }else if ((op.name().equals("gt")) || (op.name().equals("lt")) || (op.name().equals("gte")) || (op.name().equals("lte"))){
+                    if ((lOperand.getType() instanceof IntType) && (rOperand.getType() instanceof IntType)) {
+                        binaryExpression.setType(new BooleanType());
+                    } else if ((lOperand.getType() instanceof NoType) && (rOperand.getType() instanceof IntType)) {
+                        binaryExpression.setType(new BooleanType());
+                    } else if ((lOperand.getType() instanceof IntType) && (rOperand.getType() instanceof NoType)) {
+                        binaryExpression.setType(new BooleanType());
+                    } else if ((lOperand.getType() instanceof NoType) && (rOperand.getType() instanceof NoType)) {
+                        binaryExpression.setType(new BooleanType());
+                    }else{
+                        System.out.println("Line:" + binaryExpression.getLineNum() + ":unsupported operand type for " + op.name());
+                    }
             }
                 // System.out.println("Operand : " + op.name());
                 // System.out.println("lOperand " + lOperand.toString() + " Type : " + lOperand.getType().toString());
@@ -543,6 +565,10 @@ public class TypeAnalyzer extends VisitorImpl {
                 // System.out.println("rExpr : " + rValExpr.getType().toString());
                 if(!checkForAssign(assign))
                     System.out.println("Line:" + assign.getLineNum() + ":Error in Assignment");
+                if ((assign.getlValue().getType() instanceof ArrayType) && ((assign.getrValue().getType() instanceof ArrayType))){
+                    int size = ((ArrayType)assign.getrValue().getType()).getSize();
+                    ((ArrayType)assign.getlValue().getType()).setSize(size);
+                }
             }            
         } catch (NullPointerException npe) {
             System.out.println("lvalue expression is null");
@@ -563,12 +589,15 @@ public class TypeAnalyzer extends VisitorImpl {
         // TODO: implement appropriate visit functionality
         if (conditional == null)
             return;
-        if (traverseState.name().equals(TraverseState.redefinitionAndArrayErrorCatching.toString())) {
-            checkConditionalType(conditional);
-        }
+
         visitExpr(conditional.getExpression());
         visitStatement(conditional.getConsequenceBody());
         visitStatement(conditional.getAlternativeBody());
+        if (traverseState.name().equals(TraverseState.redefinitionAndArrayErrorCatching.toString())) {
+            if (!(conditional.getExpression().getType() instanceof BooleanType)){
+                System.out.println("Line:" + conditional.getExpression().getLineNum() + ":condition type must be boolean");
+            }
+        }
     }
 
     @Override
