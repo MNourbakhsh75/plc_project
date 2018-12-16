@@ -10,14 +10,18 @@ class Pat {
 }
 
 class SecondMain extends Pat {
-    var s : string;
+    var s : Mat;
     var arr : int[];
-    def oops() : int {
-        var x : boolean;
-        var z : boolean;
+    def main() : int {
+        var x : int;
+        var z : int;
         var y : int;
+        var h : int;
         #s = "hi";
-        kharoo = x && z;
+        arr = new int[2];
+        arr[1] = "hi";
+        kharoo = x * z + y * h;
+        h = s.Poop();
         if ( x > 14) then 
             x = 14;
         return y;
@@ -26,4 +30,9 @@ class SecondMain extends Pat {
 
 class Mat {
     var k : Pat;
+    def Poop () : int{
+        var poop1 : string;
+        var poop2 : int;
+        return poop2;
+    }
 }
