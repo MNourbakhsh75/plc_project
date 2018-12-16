@@ -211,17 +211,9 @@ public class TypeAnalyzer extends VisitorImpl {
             }
         }        
     }
-    private void checkForOperationType(BinaryExpression binaryExpression){
-        // Expression lOperand = binaryExpression.getLeft();
-        // Expression rOperand = binaryExpression.getRight();
-        System.out.println("binaryExpression :" + binaryExpression.getType().toString());
-    }
-    private void checkConditionalType(Conditional conditional) {
-        // System.out.println("conditional :" + conditional.toString());
-    }
     private boolean checkForAssign(Assign assign){
         boolean checked;
-        if (assign.getlValue().getType().toString() == assign.getrValue().getType().toString()){
+        if (assign.getlValue().getType().toString().equals(assign.getrValue().getType().toString())){
             checked = true;
         } else if ((assign.getrValue().getType() instanceof NoType) && (!(assign.getlValue().getType() instanceof NoType))){
             checked = true;
@@ -237,11 +229,6 @@ public class TypeAnalyzer extends VisitorImpl {
             checked = false;
         }
         return checked;
-    }
-    private void checkForClassExist(MethodCall methodCall){
-        // System.out.println("methodCall : " + methodCall.toString());
-        // Expression instance = methodCall.getInstance();
-        // System.out.println("instance : " + instance.toString());
     }
     @Override
     public void visit(Node node) {
@@ -278,8 +265,8 @@ public class TypeAnalyzer extends VisitorImpl {
             symConstructor.construct(classDeclaration);
         else if (traverseState.name().equals(TraverseState.redefinitionAndArrayErrorCatching.toString()))
             checkForPropertyRedefinition(classDeclaration);
-        visitExpr(classDeclaration.getName());
-        visitExpr(classDeclaration.getParentName());
+        // visitExpr(classDeclaration.getName());
+        // visitExpr(classDeclaration.getParentName());
         for (VarDeclaration varDeclaration : classDeclaration.getVarDeclarations())
             this.visit(varDeclaration);
         for (MethodDeclaration methodDeclaration : classDeclaration.getMethodDeclarations())
@@ -290,7 +277,6 @@ public class TypeAnalyzer extends VisitorImpl {
     @Override
     public void visit(MethodDeclaration methodDeclaration) {
         // TODO: implement appropriate visit functionality
-        // System.out.println("hhh : " + SymbolTable.top);
         if (methodDeclaration == null)
             return;
         if (traverseState.name().equals(TraverseState.symbolTableConstruction.toString()))
@@ -300,13 +286,18 @@ public class TypeAnalyzer extends VisitorImpl {
         for (VarDeclaration argDeclaration : methodDeclaration.getArgs())
             visit(argDeclaration);
         for (VarDeclaration localVariable : methodDeclaration.getLocalVars()) {
-            // System.out.println("localVariable : " + localVariable.getIdentifier().getName());
             this.visit(localVariable);
         }
         for (Statement statement : methodDeclaration.getBody())
             visitStatement(statement);
         visitExpr(methodDeclaration.getReturnValue());
         SymbolTable.pop();
+        if (traverseState.name().equals(TraverseState.redefinitionAndArrayErrorCatching.toString())){
+            if (!(methodDeclaration.getReturnValue().getType() instanceof NoType))
+                if(!(methodDeclaration.getReturnValue().getType().toString().equals(methodDeclaration.getActualReturnType().toString()))){
+                    nameErrors.add("Line:" + methodDeclaration.getReturnValue().getLineNum() + ": "+methodDeclaration.getName().getName()+" return type must be " + methodDeclaration.getActualReturnType().toString());                        
+                }
+        }
     }
 
     @Override
@@ -345,9 +336,9 @@ public class TypeAnalyzer extends VisitorImpl {
             visitExpr(arrayCall.getIndex());
             if (traverseState.name().equals(TraverseState.redefinitionAndArrayErrorCatching.toString())){
                 int arrSize =((ArrayType)(arrayCall.getInstance().getType())).getSize();
-                arrayCall.setType(arrayCall.getInstance().getType());
+                arrayCall.setType(new IntType());
                 if((((IntValue)arrayCall.getIndex()).getConstant() > arrSize) || (((IntValue)arrayCall.getIndex()).getConstant() < 0)){
-                    System.out.println("Line:" + arrayCall.getInstance().getLineNum() + ": invalid index for array");    
+                    nameErrors.add("Line:" + arrayCall.getInstance().getLineNum() + ": invalid index for array");    
                 }
             }
         } catch (NullPointerException npe) {
@@ -368,11 +359,11 @@ public class TypeAnalyzer extends VisitorImpl {
             visitExpr(lOperand);
             visitExpr(rOperand);
             if (traverseState.name().equals(TraverseState.redefinitionAndArrayErrorCatching.toString())) {
-                if((op.name().equals("and")) || (op.name().equals("or")) || (op.name().equals("neq"))){
+                if((op.name().equals("and")) || (op.name().equals("or"))){
                 if ((lOperand.getType() instanceof BooleanType) && (rOperand.getType() instanceof BooleanType)){
                     binaryExpression.setType(lOperand.getType());
                 }else{
-                        System.out.println("Line:" + binaryExpression.getLineNum() + ":unsupported operand type for " + op.name());
+                        nameErrors.add("Line:" + binaryExpression.getLineNum() + ": unsupported operand type for " + op.name());
                     // return; 
                 }
             }else if ((op.name().equals("add")) || (op.name().equals("sub")) || (op.name().equals("mult")) || (op.name().equals("div"))){
@@ -387,7 +378,7 @@ public class TypeAnalyzer extends VisitorImpl {
                 }
                 else {
                     // nameErrors.add(
-                    System.out.println("Line:" + binaryExpression.getLineNum() + ":unsupported operand type for " + op.name());
+                        nameErrors.add("Line:" + binaryExpression.getLineNum() + ": unsupported operand type for " + op.name());
                     // return;
                 }
             }else if ((op.name().equals("gt")) || (op.name().equals("lt")) || (op.name().equals("gte")) || (op.name().equals("lte"))){
@@ -400,12 +391,15 @@ public class TypeAnalyzer extends VisitorImpl {
                     } else if ((lOperand.getType() instanceof NoType) && (rOperand.getType() instanceof NoType)) {
                         binaryExpression.setType(new BooleanType());
                     }else{
-                        System.out.println("Line:" + binaryExpression.getLineNum() + ":unsupported operand type for " + op.name());
+                        nameErrors.add("Line:" + binaryExpression.getLineNum() + ": unsupported operand type for " + op.name());
                     }
+            }else if ((op.name().equals("eq")) || (op.name().equals("neq"))){
+                if ((lOperand.getType().toString().equals(rOperand.getType().toString()))){
+                    binaryExpression.setType(new BooleanType());
+                }else if ((rOperand.getType() instanceof NoType) && !(lOperand.getType() instanceof NoType)){
+                    binaryExpression.setType(new BooleanType());
+                }
             }
-                // System.out.println("Operand : " + op.name());
-                // System.out.println("lOperand " + lOperand.toString() + " Type : " + lOperand.getType().toString());
-                // System.out.println("rOperand " + rOperand.toString() + " Type : " + rOperand.getType().toString());
             }
         } catch (NullPointerException npe) {
             System.out.println("one of operands is null, there is a syntax error");
@@ -426,8 +420,8 @@ public class TypeAnalyzer extends VisitorImpl {
                 identifier.setType(si.getType());
             } catch (ItemNotFoundException itemNotFoundException) {
                 identifier.setType(new NoType());
-                // System.out.println(
-                //         "Line:" + identifier.getLineNum() + ":variable " + identifier.getName() + " is not declared");
+                nameErrors.add(
+                        "Line:" + identifier.getLineNum() + ": variable " + identifier.getName() + " is not declared");
                 // return;
             }
         }
@@ -446,31 +440,68 @@ public class TypeAnalyzer extends VisitorImpl {
         if (methodCall == null)
             return;        
         try {
-            visitExpr(methodCall.getInstance());
-            visitExpr(methodCall.getMethodName());
-            // System.out.println("Method ins : " + methodCall.getInstance() + "Line "+ methodCall.getInstance().getLineNum());
-            for (Expression argument : methodCall.getArgs())
-                visitExpr(argument);
+            // visitExpr(methodCall.getInstance());
+            // visitExpr(methodCall.getMethodName());
+            // System.out.println("Method ins : " + methodCall.getInstance() + " Line "+ methodCall.getInstance().getLineNum());
+            // if(methodCall.getArgs() != null){
+                for (Expression argument : methodCall.getArgs())
+                    visitExpr(argument);
+            // }
             if (traverseState.name().equals(TraverseState.redefinitionAndArrayErrorCatching.toString())){
                 String name;
                 if (methodCall.getInstance() instanceof NewClass){
-                    // System.out.println("Method ins Type : " + ((NewClass)methodCall.getInstance()).getClassName().getType().toString());
+                    visitExpr(methodCall.getInstance());
                     name = "Class_" + ((NewClass)methodCall.getInstance()).getClassName().getType().toString();
                 }else{
+                    String varName = "Variable_" + ((Identifier) methodCall.getInstance()).getName();
+                    try {
+                        SymbolTableVariableItemBase si = (SymbolTableVariableItemBase) SymbolTable.top.get(varName);
+                        (methodCall.getInstance()).setType(si.getType());
+                    } catch (ItemNotFoundException itemNotFoundException) {
+                        (methodCall.getInstance()).setType(new NoType());
+                        nameErrors.add("Line:" + methodCall.getInstance().getLineNum() + ": variable "
+                                + ((Identifier) methodCall.getInstance()).getName() + " is not declared");
+                        // return;
+                    }
                     name = "Class_" + methodCall.getInstance().getType().toString();
                 }
                 String[] nameArr = name.split("_",-2);
                 try {
                     ClassSymbolTableItem sti = (ClassSymbolTableItem) SymbolTable.top.get(name);
                     try {
-                    String methodName = "Method_" + methodCall.getMethodName().getName();
-                    SymbolTable classSymbolTable = sti.getClassSym();
-                    SymbolTableMethodItem methodNames = (SymbolTableMethodItem) classSymbolTable.get(methodName);
+                        String methodName = "Method_" + methodCall.getMethodName().getName();
+                        SymbolTable classSymbolTable = sti.getClassSym();
+                        SymbolTableMethodItem methodNames = (SymbolTableMethodItem) classSymbolTable.get(methodName);
+                        ArrayList<VarDeclaration> methodArgs = (methodNames.getMethodDeclaration()).getArgs();
+                        ArrayList<Expression> methodCallArgs = methodCall.getArgs();
+                        int methodArgsSize = methodArgs.size();
+                        int methodCallArgsSize = methodCallArgs.size();
+                        if (methodCallArgsSize != methodArgsSize){
+                            nameErrors.add("Line:"+methodCall.getInstance().getLineNum()+": Unmatch Args for method "+ methodCall.getMethodName().getName());
+                        }
+                        if(methodCallArgsSize <= methodArgsSize ){
+                            for(int i =0 ;i < methodCallArgsSize;i++){
+                                if ((!(methodCallArgs.get(i).getType() instanceof NoType)))
+                                    if ((!(methodCallArgs.get(i).getType().toString().equals(methodArgs.get(i).getType().toString())))){
+                                        nameErrors.add("Line:"+methodCall.getInstance().getLineNum()+": Unmatch Args Type for "+ ((Identifier)methodCallArgs.get(i)).getName() + " in method "+ methodCall.getMethodName().getName());
+                                    }
+                            }
+                        }
+                        if (methodCallArgsSize > methodArgsSize){
+                            for(int i =0 ;i < methodArgsSize;i++){
+                                    if ((!(methodCallArgs.get(i).getType() instanceof NoType)))
+                                        if ((!(methodCallArgs.get(i).getType().toString().equals(methodArgs.get(i).getType().toString())))){
+                                            nameErrors.add("Line:"+methodCall.getInstance().getLineNum()+": Unmatch Args Type for "+ ((Identifier)methodCallArgs.get(i)).getName() + " in method "+ methodCall.getMethodName().getName());
+                                        }
+                            }
+                        }
+                        methodCall.setType(methodNames.getMethodDeclaration().getActualReturnType());
                     } catch (ItemNotFoundException itemNotFoundException2) {
-                    System.out.println("Line:"+ methodCall.getInstance().getLineNum()+": there is no method named "+ methodCall.getMethodName().getName() + " in class " +nameArr[1]);
+                        nameErrors.add("Line:"+ methodCall.getInstance().getLineNum()+": there is no method named "+ methodCall.getMethodName().getName() + " in class " +nameArr[1]);
                     }
+
                 } catch (ItemNotFoundException itemNotFoundException) {
-                    System.out.println("Line:"+ methodCall.getInstance().getLineNum()+": class "+ nameArr[1] + " is not declared");
+                    nameErrors.add("Line:"+ methodCall.getInstance().getLineNum()+": class "+ nameArr[1] + " is not declared");
                     // return;
                 }
             }
@@ -487,7 +518,6 @@ public class TypeAnalyzer extends VisitorImpl {
             return;
         visitExpr(newArray.getExpression());
         if (traverseState.name().equals(TraverseState.redefinitionAndArrayErrorCatching.toString())){
-            System.out.println(newArray.getExpression());
             ArrayType art = new ArrayType();
             art.setSize(((IntValue)newArray.getExpression()).getConstant());
             newArray.setType(art);
@@ -499,7 +529,7 @@ public class TypeAnalyzer extends VisitorImpl {
         // TODO: implement appropriate visit functionality
         if (newClass == null)
             return;
-        visitExpr(newClass.getClassName());
+        // visitExpr(newClass.getClassName());
         if (traverseState.name().equals(TraverseState.redefinitionAndArrayErrorCatching.toString())){
             // System.out.println("newClass name " + newClass.getClassName().getName());
             // System.out.println("newClass type " + newClass.getClassName().getType().toString());
@@ -510,7 +540,7 @@ public class TypeAnalyzer extends VisitorImpl {
                 newType.setName(sti.getClassDeclaration().getName());
                 newClass.getClassName().setType(newType);
             } catch (ItemNotFoundException itemNotFoundException) {
-                System.out.println("Line:" + newClass.getClassName().getLineNum() + ": class "
+                nameErrors.add("Line:" + newClass.getClassName().getLineNum() + ": class "
                         + newClass.getClassName().getName() + " is not declared");
                 // return;
             }
@@ -527,8 +557,32 @@ public class TypeAnalyzer extends VisitorImpl {
         // TODO: implement appropriate visit functionality
         if (unaryExpression == null)
             return;
+        UnaryOperator op = unaryExpression.getUnaryOperator();
         try {
             visitExpr(unaryExpression.getValue());
+            if (traverseState.name().equals(TraverseState.redefinitionAndArrayErrorCatching.toString())){
+                if((op.name().equals("minus"))){
+                    if ((unaryExpression.getValue().getType() instanceof IntType)){
+                        unaryExpression.setType(unaryExpression.getValue().getType());
+                    }else if ((unaryExpression.getValue().getType() instanceof NoType)) {
+                        unaryExpression.setType(unaryExpression.getValue().getType());
+                    }else{
+                            nameErrors.add("Line:" + unaryExpression.getLineNum() + ": unsupported operand type for " + op.name());
+                        // return; 
+                    }
+                }
+                if ((op.name().equals("not"))) {
+                    if ((unaryExpression.getValue().getType() instanceof BooleanType)) {
+                        unaryExpression.setType(unaryExpression.getValue().getType());
+                    } else if ((unaryExpression.getValue().getType() instanceof NoType)) {
+                        unaryExpression.setType(unaryExpression.getValue().getType());
+                    }else {
+                        nameErrors.add(
+                                "Line:" + unaryExpression.getLineNum() + ": unsupported operand type for " + op.name());
+                        // return;
+                    }
+                }
+            }            
         } catch (NullPointerException npe) {
             System.out.println("unary value is null");
         }
@@ -564,11 +618,14 @@ public class TypeAnalyzer extends VisitorImpl {
                 // System.out.println("lExpr : " + lExpr.getType().toString());
                 // System.out.println("rExpr : " + rValExpr.getType().toString());
                 if(!checkForAssign(assign))
-                    System.out.println("Line:" + assign.getLineNum() + ":Error in Assignment");
+                    nameErrors.add("Line:" + assign.getLineNum() + ": invalid assgin");
                 if ((assign.getlValue().getType() instanceof ArrayType) && ((assign.getrValue().getType() instanceof ArrayType))){
                     int size = ((ArrayType)assign.getrValue().getType()).getSize();
                     ((ArrayType)assign.getlValue().getType()).setSize(size);
                 }
+                // if(!(lExpr instanceof Identifier))
+                //     System.out.println("Line:" + assign.getLineNum() + ":left side of assignment must be a valid lvalue");
+
             }            
         } catch (NullPointerException npe) {
             System.out.println("lvalue expression is null");
@@ -595,7 +652,7 @@ public class TypeAnalyzer extends VisitorImpl {
         visitStatement(conditional.getAlternativeBody());
         if (traverseState.name().equals(TraverseState.redefinitionAndArrayErrorCatching.toString())) {
             if (!(conditional.getExpression().getType() instanceof BooleanType)){
-                System.out.println("Line:" + conditional.getExpression().getLineNum() + ":condition type must be boolean");
+                nameErrors.add("Line:" + conditional.getExpression().getLineNum() + ": condition type must be boolean");
             }
         }
     }
@@ -607,6 +664,11 @@ public class TypeAnalyzer extends VisitorImpl {
             return;
         visitExpr(loop.getCondition());
         visitStatement(loop.getBody());
+        if (traverseState.name().equals(TraverseState.redefinitionAndArrayErrorCatching.toString())) {
+            if (!(loop.getCondition().getType() instanceof BooleanType)){
+                nameErrors.add("Line:" + loop.getCondition().getLineNum() + ": condition type must be boolean");
+            }
+        }
 
     }
 
@@ -617,5 +679,11 @@ public class TypeAnalyzer extends VisitorImpl {
             return;
 
         visitExpr(write.getArg());
+        if (traverseState.name().equals(TraverseState.redefinitionAndArrayErrorCatching.toString())) {
+            if (!(write.getArg().getType() instanceof IntType) && !(write.getArg().getType() instanceof StringType)){
+                nameErrors.add("Line:"+ write.getLineNum()+": unsupported type for writeln");
+            }
+
+        }
     }
 }

@@ -662,8 +662,9 @@ public class SmoolaParser extends Parser {
 				setState(177);
 				((StatementsContext)_localctx).stat = statement();
 
-				                if( ((StatementsContext)_localctx).stat.myStatement != null )
+				                if( ((StatementsContext)_localctx).stat.myStatement != null ){
 				                    _localctx.myStatements.add( ((StatementsContext)_localctx).stat.myStatement );
+				                }
 				            
 				}
 				}
@@ -756,7 +757,7 @@ public class SmoolaParser extends Parser {
 				((StatementContext)_localctx).writeStat = statementWrite();
 
 				            ((StatementContext)_localctx).myStatement =  ((StatementContext)_localctx).writeStat.writeStat;
-				         
+				        
 				}
 				break;
 			case T__11:
@@ -954,6 +955,7 @@ public class SmoolaParser extends Parser {
 
 	public static class StatementWriteContext extends ParserRuleContext {
 		public Write writeStat;
+		public Token Id1;
 		public ExpressionContext writeExpr;
 		public ExpressionContext expression() {
 			return getRuleContext(ExpressionContext.class,0);
@@ -971,7 +973,7 @@ public class SmoolaParser extends Parser {
 			enterOuterAlt(_localctx, 1);
 			{
 			setState(227);
-			match(T__18);
+			((StatementWriteContext)_localctx).Id1 = match(T__18);
 			setState(228);
 			((StatementWriteContext)_localctx).writeExpr = expression();
 			setState(229);
@@ -980,6 +982,8 @@ public class SmoolaParser extends Parser {
 			match(T__7);
 
 			            ((StatementWriteContext)_localctx).writeStat =  new Write( ((StatementWriteContext)_localctx).writeExpr.finalExpr );
+			            _localctx.writeStat.setLineNum(((StatementWriteContext)_localctx).Id1.getLine());
+
 			        
 			}
 		}

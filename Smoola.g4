@@ -143,8 +143,9 @@ grammar Smoola;
         (
             stat=statement
             {
-                if( $stat.myStatement != null )
+                if( $stat.myStatement != null ){
                     $myStatements.add( $stat.myStatement );
+                }
             }
         )*
     ;
@@ -163,9 +164,9 @@ grammar Smoola;
             $myStatement = $whileStat.whileStat;
         }|
         writeStat=statementWrite
-         {
+        {
             $myStatement = $writeStat.writeStat;
-         }|
+        }|
         assignStat=statementAssignment
         {
             $myStatement = $assignStat.assignStat;
@@ -195,9 +196,11 @@ grammar Smoola;
         }
     ;
     statementWrite returns[ Write writeStat ]:
-        'writeln(' writeExpr=expression ')' ';'
+        Id1 = 'writeln(' writeExpr=expression ')' ';'
         {
             $writeStat = new Write( $writeExpr.finalExpr );
+            $writeStat.setLineNum($Id1.getLine());
+
         }
     ;
     statementAssignment returns[ Assign assignStat ]:
