@@ -2190,6 +2190,7 @@ public class SmoolaParser extends Parser {
 		public Expression methodCallExpr;
 		public Token methodName;
 		public ExpressionContext argExpr;
+		public Token id4;
 		public ExpressionMethodsTempContext retMethodCallExpr;
 		public ExpressionMethodsTempContext expressionMethodsTemp() {
 			return getRuleContext(ExpressionMethodsTempContext.class,0);
@@ -2281,9 +2282,10 @@ public class SmoolaParser extends Parser {
 				case 3:
 					{
 					setState(378);
-					match(T__34);
+					((ExpressionMethodsTempContext)_localctx).id4 = match(T__34);
 
 						        ((ExpressionMethodsTempContext)_localctx).methodCallExpr =  new Length( _localctx.instance );
+					            _localctx.methodCallExpr.setLineNum(((ExpressionMethodsTempContext)_localctx).id4.getLine());
 						    
 					}
 					break;

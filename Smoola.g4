@@ -503,9 +503,10 @@ grammar Smoola;
 	    }
 	    )*) ')'
 	    |
-	    'length'
+	    id4 = 'length'
 	    {
 	        $methodCallExpr = new Length( $instance );
+            $methodCallExpr.setLineNum($id4.getLine());
 	    }
 	    ) retMethodCallExpr=expressionMethodsTemp[ $methodCallExpr ]
 	    {
