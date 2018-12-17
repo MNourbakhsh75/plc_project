@@ -8,9 +8,10 @@ class MainClass {
 class Pat extends Mat {
     var kharoo : int;
     var kharoo2 : string;
-    def kharoo () : int {
+    var kharoo5 : SecondMain;
+    def kharoo () : SecondMain {
         var o : int;
-        return o;
+        return kharoo5;
     }
 }
 
@@ -25,22 +26,22 @@ class SecondMain extends Pat {
         var x : int;
         var z : int;
         var y : int;
-        var h : int;
+        var h : intt;
         var j : Mat;
         var o : SecondMain;
-        j = new SecondMain();
+        j = (new SecondMain().kharoo()).poop3(x,y);
         x = j.kharoo();
-        #y = kk;
         ss = "hi";
         arr = new int[5];
         arr[4] = 12;
-        #h = (this.poop3(z,x));
+        h = (this.poop3(z,x));
         y = -y;
-        kharoo = x * z + y * ss;
+        4 = 3;
+        kharoo = true * false;
         z = s.Poop();
         if ( x < 14) then 
             x = 14;
-        while ( x == pp){
+        while ( ff == pp){
             x = 50;
         }
         return j;
