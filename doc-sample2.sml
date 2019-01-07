@@ -1,8 +1,22 @@
-class Test {
-    def main() : int {
-        var j : int;
-        writeln((new Class1()).testMethod("hi there!"));
-        return 0;
-        # This is a comment
+class MainClass{
+ def main(): int{
+  writeln("Kharoo");
+  return 23;
+ }
+}
+
+class Kharoo {
+    def a():string {
+        return "the Kharoo!!";
     }
 }
+
+class Asb {
+
+}
+
+class Poop extends Asb {
+
+}
+
+

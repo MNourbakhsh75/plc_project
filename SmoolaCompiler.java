@@ -3,7 +3,7 @@ import main.ast.node.Program;
 import main.visitor.astPrinter.ASTPrinter;
 import main.visitor.nameAnalyzer.NameAnalyser;
 import main.visitor.typeAnalyzer.TypeAnalyzer;
-import main.visitor.typeAnalyzer.TypeAnalyzer;
+import main.visitor.codeGenerator.CodeGenerator;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 
@@ -24,6 +24,11 @@ public class SmoolaCompiler {
             TypeAnalyzer typeAnalyzer = new TypeAnalyzer();
             typeAnalyzer.visit(program);
             if (typeAnalyzer.numOfErrors() != 0) {
+                throw new CompileErrorException();
+            }
+            CodeGenerator cg = new CodeGenerator();
+            cg.visit(program);
+            if (cg.numOfErrors() != 0) {
                 throw new CompileErrorException();
             }
             ASTPrinter printer = new ASTPrinter();

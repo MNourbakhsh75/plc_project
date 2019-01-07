@@ -1,6 +1,7 @@
 class MainClass {
     def main(): int {
-        writeln(new SecondMain().main());
+        writeln(new SecondMain().Goh());
+        new Mat().Poop().length;
         return 0;
     }
 }
@@ -22,7 +23,7 @@ class SecondMain extends Pat {
     def poop3 (x:int,y:int) : int {
         return x * y;
     }
-    def main() : Pat {
+    def Goh() : Pat {
         var x : int;
         var z : int;
         var y : int;
@@ -50,8 +51,8 @@ class SecondMain extends Pat {
 }
 
 class Mat {
-    var k : Pat;
-    def Poop () : Pat{
+    var k : int[];
+    def Poop () : int[]{
         var poop1 : string;
         var poop2 : int;
         return k;

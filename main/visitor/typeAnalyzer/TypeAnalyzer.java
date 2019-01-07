@@ -40,6 +40,7 @@ public class TypeAnalyzer extends VisitorImpl {
     private ArrayList<String> nameErrors;
     private int lastIndexOfVariable;
     private ClassDeclaration currentClass;
+    private MethodDeclaration currentMethod;
     public TypeAnalyzer() {
         symConstructor = new SymbolTableConstructor();
         symTableClassLinker = new SymbolTableClassParentLinker();
@@ -293,8 +294,10 @@ public class TypeAnalyzer extends VisitorImpl {
             return;
         if (traverseState.name().equals(TraverseState.symbolTableConstruction.toString()))
             symConstructor.construct(methodDeclaration);
-        else if (traverseState.name().equals(TraverseState.redefinitionAndArrayErrorCatching.toString()))
+        else if (traverseState.name().equals(TraverseState.redefinitionAndArrayErrorCatching.toString())){
             checkForPropertyRedefinition(methodDeclaration);
+            currentMethod = methodDeclaration;
+        }
         for (VarDeclaration argDeclaration : methodDeclaration.getArgs())
             visit(argDeclaration);
         for (VarDeclaration localVariable : methodDeclaration.getLocalVars()) {
@@ -305,10 +308,48 @@ public class TypeAnalyzer extends VisitorImpl {
         visitExpr(methodDeclaration.getReturnValue());
         SymbolTable.pop();
         if (traverseState.name().equals(TraverseState.redefinitionAndArrayErrorCatching.toString())){
-            if (!(methodDeclaration.getReturnValue().getType() instanceof NoType))
-                if(!(methodDeclaration.getReturnValue().getType().toString().equals(methodDeclaration.getActualReturnType().toString()))){
-                    nameErrors.add("Line:" + methodDeclaration.getReturnValue().getLineNum() + ": "+methodDeclaration.getName().getName()+" return type must be " + methodDeclaration.getActualReturnType().toString());                        
+            boolean checked = false;
+            if (!(methodDeclaration.getReturnValue().getType() instanceof NoType)){
+                if(((methodDeclaration.getReturnValue().getType().toString().equals(methodDeclaration.getActualReturnType().toString())))){
+                    // nameErrors.add("Line:" + methodDeclaration.getReturnValue().getLineNum() + ": "+methodDeclaration.getName().getName()+" return type must be " + methodDeclaration.getActualReturnType().toString()); 
+                    checked = true;                      
                 }
+                if(((methodDeclaration.getReturnValue().getType() instanceof UserDefinedType) && (methodDeclaration.getActualReturnType() instanceof UserDefinedType)) && (!(methodDeclaration.getReturnValue().getType().toString().equals(methodDeclaration.getActualReturnType().toString())))){
+                    String name1 = "Class_" + methodDeclaration.getReturnValue().getType().toString();
+                    String name2 = "Class_" + methodDeclaration.getActualReturnType().toString();
+                    HashMap<String, SymbolTableItem> hm = SymbolTable.root.getSymItems();
+                    if ((hm.containsKey(name1)) && (hm.containsKey(name2))) {
+                        ClassSymbolTableItem classItem1 = (ClassSymbolTableItem) hm.get(name1);
+                        // ClassSymbolTableItem classItem2 = (ClassSymbolTableItem) hm.get(name2);
+                        String pName = classItem1.getParentName();
+                        if (pName != null) {
+                            while (pName != null) {
+                                if (pName.equals(methodDeclaration.getActualReturnType().toString())) {
+                                    checked = true;
+                                    break;
+                                } else {
+                                    String tempName = "Class_" + pName;
+                                    ClassSymbolTableItem classItem2 = (ClassSymbolTableItem) hm.get(tempName);
+                                    pName = classItem2.getParentName();
+                                    if (pName == null) {
+                                        checked = false;
+                                        break;
+                                    }
+                                }
+                            }
+                        } else {
+                            checked = false;
+                        }
+                    }else{
+                        nameErrors.add("Line:" + methodDeclaration.getReturnValue().getLineNum() + ": undefined return type for "+methodDeclaration.getName().getName());                        
+                    }    
+                }                         
+            }else{
+                checked = true;
+            }
+            if (!checked){
+                nameErrors.add("Line:" + methodDeclaration.getReturnValue().getLineNum() + ": "+methodDeclaration.getName().getName()+" return type must be " + methodDeclaration.getActualReturnType().toString());
+            }   
         }
     }
 
@@ -319,11 +360,17 @@ public class TypeAnalyzer extends VisitorImpl {
             return;
         if (traverseState.name().equals(TraverseState.symbolTableConstruction.toString()))
             visit((MethodDeclaration) mainMethodDeclaration);
-        else if (traverseState.name().equals(TraverseState.redefinitionAndArrayErrorCatching.toString()))
+        else if (traverseState.name().equals(TraverseState.redefinitionAndArrayErrorCatching.toString())){
+            // System.out.println("main !!!");
             visit((MethodDeclaration) mainMethodDeclaration);
+        }
         for (Statement statement : mainMethodDeclaration.getBody())
             visitStatement(statement);
         visitExpr(mainMethodDeclaration.getReturnValue());
+        // if (traverseState.name().equals(TraverseState.symbolTableConstruction.toString())){
+        //     System.out.println("main !!!");
+        // }
+
     }
 
     @Override
@@ -349,10 +396,15 @@ public class TypeAnalyzer extends VisitorImpl {
             visitExpr(arrayCall.getInstance());
             visitExpr(arrayCall.getIndex());
             if (traverseState.name().equals(TraverseState.redefinitionAndArrayErrorCatching.toString())){
+                if(!(arrayCall.getInstance().getType() instanceof ArrayType)){
+                    arrayCall.setType(new NoType());
+                    nameErrors.add("Line:" + arrayCall.getInstance().getLineNum() + ": invalid instance for array");
+                }else{
                 int arrSize =((ArrayType)(arrayCall.getInstance().getType())).getSize();
                 arrayCall.setType(new IntType());
                 if((((IntValue)arrayCall.getIndex()).getConstant() > arrSize) || (((IntValue)arrayCall.getIndex()).getConstant() < 0)){
                     nameErrors.add("Line:" + arrayCall.getInstance().getLineNum() + ": invalid index for array");    
+                }
                 }
             }
         } catch (NullPointerException npe) {
@@ -602,6 +654,7 @@ public class TypeAnalyzer extends VisitorImpl {
                 newClass.getClassName().setType(newType);
                 newClass.setType(newType);
             } catch (ItemNotFoundException itemNotFoundException) {
+                newClass.setType(new NoType());
                 nameErrors.add("Line:" + newClass.getClassName().getLineNum() + ": class "
                         + newClass.getClassName().getName() + " is not declared");
                 // return;
@@ -690,9 +743,13 @@ public class TypeAnalyzer extends VisitorImpl {
             if (traverseState.name().equals(TraverseState.redefinitionAndArrayErrorCatching.toString())) {
                 // System.out.println("lAssign : " + lExpr.getType().toString()+ " : " + assign.getLineNum());
                 // System.out.println("rAssign : " + rValExpr.getType().toString() + " : "+ assign.getLineNum());
+                if(currentMethod.getName().getName().equals("main")){
+                    nameErrors.add("Line:" + assign.getLineNum() + ": invalid statement in main method");    
+                    return;                
+                }
                 if(!(lExpr instanceof Identifier)){
                     if(!(lExpr instanceof ArrayCall)){
-                        nameErrors.add("Line:" + assign.getLineNum() + ": left side of assignment must be a valid lvalue");
+                        nameErrors.add("Line:" + lExpr.getLineNum() + ": left side of assignment must be a valid lvalue");
                     }
                 }else{
                     if (!checkForAssign(assign))
@@ -717,6 +774,11 @@ public class TypeAnalyzer extends VisitorImpl {
             return;
         for (Statement blockStat : block.getBody())
             this.visitStatement(blockStat);
+        // if (traverseState.name().equals(TraverseState.symbolTableConstruction.toString())){
+        //     if (currentClass.getName().getName().equals("MainClass")){
+
+        //     }
+        // }
     }
 
     @Override
@@ -729,6 +791,10 @@ public class TypeAnalyzer extends VisitorImpl {
         visitStatement(conditional.getConsequenceBody());
         visitStatement(conditional.getAlternativeBody());
         if (traverseState.name().equals(TraverseState.redefinitionAndArrayErrorCatching.toString())) {
+            if (currentMethod.getName().getName().equals("main")) {
+                nameErrors.add("Line:" + conditional.getExpression().getLineNum() + ": invalid statement in main method");
+                return;
+            }
             if (!(conditional.getExpression().getType() instanceof BooleanType) && !(conditional.getExpression().getType() instanceof NoType)){
                 nameErrors.add("Line:" + conditional.getExpression().getLineNum() + ": condition type must be boolean");
             }
@@ -745,6 +811,10 @@ public class TypeAnalyzer extends VisitorImpl {
         
         if (traverseState.name().equals(TraverseState.redefinitionAndArrayErrorCatching.toString())) {
             // System.out.println("kkkk : "+ loop.getCondition().getType().toString());
+            if (currentMethod.getName().getName().equals("main")) {
+                nameErrors.add("Line:" + loop.getCondition().getLineNum() + ": invalid statement in main method");
+                return;
+            }
             if (!(loop.getCondition().getType() instanceof BooleanType) && !(loop.getCondition().getType() instanceof NoType)){
                 nameErrors.add("Line:" + loop.getCondition().getLineNum() + ": condition type must be boolean");
             }
